@@ -2,11 +2,12 @@ package drive
 
 import (
 	"fmt"
+	"io"
+	"text/tabwriter"
+
 	"golang.org/x/net/context"
 	"google.golang.org/api/drive/v3"
 	"google.golang.org/api/googleapi"
-	"io"
-	"text/tabwriter"
 )
 
 type ListFilesArgs struct {
@@ -110,14 +111,15 @@ func PrintFileList(args PrintFileListArgs) {
 	w.Init(args.Out, 0, 0, 3, ' ', 0)
 
 	if !args.SkipHeader {
-		fmt.Fprintln(w, "Id\tName\tType\tSize\tCreated")
+		fmt.Fprintln(w, "Id\tName\tType\tMime\tSize\tCreated")
 	}
 
 	for _, f := range args.Files {
-		fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\n",
+		fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\n",
 			f.Id,
 			truncateString(f.Name, args.NameWidth),
 			filetype(f),
+			f.MimeType,
 			formatSize(f.Size, args.SizeInBytes),
 			formatDatetime(f.CreatedTime),
 		)
