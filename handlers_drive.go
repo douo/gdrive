@@ -14,10 +14,11 @@ import (
 	"github.com/prasmussen/gdrive/drive"
 )
 
-const ClientId = "273215293094-aj6gbgoi66sfrbnis9thjk54sm9ttr72.apps.googleusercontent.com"
-const ClientSecret = "IdX2nfF6hNCbKqri0k1cCflI"
 const TokenFilename = "token_v2.json"
 const DefaultCacheFileName = "file_cache.json"
+
+var ClientId = os.Getenv("GDRIVE_CLIENT_ID")
+var ClientSecret = os.Getenv("GDRIVE_CLIENT_SECRET")
 
 func listHandler(ctx cli.Context) {
 	args := ctx.Args()
