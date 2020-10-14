@@ -59,6 +59,7 @@ func downloadHandler(ctx cli.Context) {
 		Path:      args.String("path"),
 		Delete:    args.Bool("delete"),
 		Recursive: args.Bool("recursive"),
+		Shortcut:  args.Bool("shortcut"),
 		Stdout:    args.Bool("stdout"),
 		Progress:  progressWriter(args.Bool("noProgress")),
 		Timeout:   durationInSeconds(args.Int64("timeout")),
@@ -74,6 +75,7 @@ func downloadQueryHandler(ctx cli.Context) {
 		Force:     args.Bool("force"),
 		Skip:      args.Bool("skip"),
 		Recursive: args.Bool("recursive"),
+		Shortcut:  args.Bool("shortcut"),
 		Path:      args.String("path"),
 		Progress:  progressWriter(args.Bool("noProgress")),
 	})

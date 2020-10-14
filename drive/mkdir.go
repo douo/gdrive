@@ -2,11 +2,13 @@ package drive
 
 import (
 	"fmt"
-	"google.golang.org/api/drive/v3"
 	"io"
+
+	"google.golang.org/api/drive/v3"
 )
 
 const DirectoryMimeType = "application/vnd.google-apps.folder"
+const ShortcutMimeType = "application/vnd.google-apps.shortcut"
 
 type MkdirArgs struct {
 	Out         io.Writer

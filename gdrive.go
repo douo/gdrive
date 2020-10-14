@@ -124,6 +124,13 @@ func main() {
 						Description: "Download directory recursively, documents will be skipped",
 						OmitValue:   true,
 					},
+					cli.BoolFlag{
+						Name:        "shortcut",
+						Patterns:    []string{"--shortcut"},
+						Description: "Follow the shortcut and download recursively",
+						OmitValue:   true,
+					},
+
 					cli.StringFlag{
 						Name:        "path",
 						Patterns:    []string{"--path"},
@@ -181,6 +188,13 @@ func main() {
 						Description: "Download directories recursively, documents will be skipped",
 						OmitValue:   true,
 					},
+					cli.BoolFlag{
+						Name:        "shortcut",
+						Patterns:    []string{"--shortcut"},
+						Description: "Follow the shortcut and download recursively",
+						OmitValue:   true,
+					},
+
 					cli.StringFlag{
 						Name:        "path",
 						Patterns:    []string{"--path"},

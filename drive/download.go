@@ -22,6 +22,7 @@ type DownloadArgs struct {
 	Delete    bool
 	Stdout    bool
 	Timeout   time.Duration
+	Shortcut  bool // follow shortcut
 }
 
 func (self *Drive) Download(args DownloadArgs) error {
@@ -29,13 +30,23 @@ func (self *Drive) Download(args DownloadArgs) error {
 		return self.downloadRecursive(args)
 	}
 
-	f, err := self.service.Files.Get(args.Id).Fields("id", "name", "size", "mimeType", "md5Checksum").Do()
+	f, err := self.service.Files.Get(args.Id).Fields("id", "name", "size", "mimeType", "md5Checksum", "shortcutDetails").Do()
 	if err != nil {
 		return fmt.Errorf("Failed to get file: %s", err)
 	}
 
 	if isDir(f) {
 		return fmt.Errorf("'%s' is a directory, use --recursive to download directories", f.Name)
+	}
+
+	if isShortcut(f) {
+		if args.Shortcut {
+			self.downloadShortcut(f, args)
+		} else {
+			return fmt.Errorf("%s is a shortct, use --shortcut to redirect shortcut", f.Name)
+		}
+	} else {
+		return fmt.Errorf("%s(%s) mimeType is %s", f.Name, f.Id, f.MimeType)
 	}
 
 	if !isBinary(f) {
@@ -72,12 +83,13 @@ type DownloadQueryArgs struct {
 	Force     bool
 	Skip      bool
 	Recursive bool
+	Shortcut  bool
 }
 
 func (self *Drive) DownloadQuery(args DownloadQueryArgs) error {
 	listArgs := listAllFilesArgs{
 		query:  args.Query,
-		fields: []googleapi.Field{"nextPageToken", "files(id,name,mimeType,size,md5Checksum)"},
+		fields: []googleapi.Field{"nextPageToken", "files(id,name,mimeType,size,md5Checksum,shortcutDetails)"},
 	}
 	files, err := self.listAllFiles(listArgs)
 	if err != nil {
@@ -85,20 +97,23 @@ func (self *Drive) DownloadQuery(args DownloadQueryArgs) error {
 	}
 
 	downloadArgs := DownloadArgs{
-		Out:      args.Out,
-		Progress: args.Progress,
-		Path:     args.Path,
-		Force:    args.Force,
-		Skip:     args.Skip,
+		Out:       args.Out,
+		Progress:  args.Progress,
+		Path:      args.Path,
+		Force:     args.Force,
+		Skip:      args.Skip,
+		Shortcut:  args.Shortcut,
+		Recursive: args.Recursive,
 	}
 
 	for _, f := range files {
-		if isDir(f) && args.Recursive {
+		if isShortcut(f) && args.Shortcut {
+			err = self.downloadShortcut(f, downloadArgs)
+		} else if isDir(f) && args.Recursive {
 			err = self.downloadDirectory(f, downloadArgs)
 		} else if isBinary(f) {
 			_, _, err = self.downloadBinary(f, downloadArgs)
 		}
-
 		if err != nil {
 			return err
 		}
@@ -107,13 +122,20 @@ func (self *Drive) DownloadQuery(args DownloadQueryArgs) error {
 	return nil
 }
 
+func (self *Drive) downloadShortcut(f *drive.File, args DownloadArgs) error {
+	args.Id = f.ShortcutDetails.TargetId
+	return self.downloadRecursive(args)
+}
+
 func (self *Drive) downloadRecursive(args DownloadArgs) error {
-	f, err := self.service.Files.Get(args.Id).Fields("id", "name", "size", "mimeType", "md5Checksum").Do()
+	f, err := self.service.Files.Get(args.Id).Fields("id", "name", "size", "mimeType", "md5Checksum", "shortcutDetails").Do()
 	if err != nil {
 		return fmt.Errorf("Failed to get file: %s", err)
 	}
 
-	if isDir(f) {
+	if isShortcut(f) && args.Shortcut {
+		return self.downloadShortcut(f, args)
+	} else if isDir(f) {
 		return self.downloadDirectory(f, args)
 	} else if isBinary(f) {
 		_, _, err = self.downloadBinary(f, args)
@@ -253,6 +275,10 @@ func (self *Drive) downloadDirectory(parent *drive.File, args DownloadArgs) erro
 
 func isDir(f *drive.File) bool {
 	return f.MimeType == DirectoryMimeType
+}
+
+func isShortcut(f *drive.File) bool {
+	return f.MimeType == ShortcutMimeType
 }
 
 func isBinary(f *drive.File) bool {
