@@ -1,7 +1,7 @@
 package drive
 
 import (
-	"golang.org/x/net/context"
+	"context"
 	"io"
 	"sync"
 	"time"
