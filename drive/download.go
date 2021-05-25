@@ -146,6 +146,18 @@ func (self *Drive) downloadRecursive(args DownloadArgs) error {
 }
 
 func (self *Drive) downloadBinary(f *drive.File, args DownloadArgs) (int64, int64, error) {
+	// Path to file
+	fpath := filepath.Join(args.Path, f.Name)
+	// Check if file exists to force
+	if !args.Skip && !args.Force && fileExists(fpath) {
+		return 0, 0, fmt.Errorf("File '%s' already exists, use --force to overwrite or --skip to skip", fpath)
+	}
+	// Check file existence first
+	if args.Skip && fileExists(fpath) {
+		fmt.Printf("File '%s' already exists, skipping\n", fpath)
+		return 0, 0, nil
+	}
+	
 	// Get timeout reader wrapper and context
 	timeoutReaderWrapper, ctx := getTimeoutReaderWrapperContext(args.Timeout)
 
@@ -159,9 +171,6 @@ func (self *Drive) downloadBinary(f *drive.File, args DownloadArgs) (int64, int6
 
 	// Close body on function exit
 	defer res.Body.Close()
-
-	// Path to file
-	fpath := filepath.Join(args.Path, f.Name)
 
 	if !args.Stdout {
 		fmt.Fprintf(args.Out, "Downloading %s -> %s\n", f.Name, fpath)
@@ -248,7 +257,7 @@ func (self *Drive) saveFile(args saveFileArgs) (int64, int64, error) {
 func (self *Drive) downloadDirectory(parent *drive.File, args DownloadArgs) error {
 	listArgs := listAllFilesArgs{
 		query:  fmt.Sprintf("'%s' in parents", parent.Id),
-		fields: []googleapi.Field{"nextPageToken", "files(id,name)"},
+		fields: []googleapi.Field{"nextPageToken", "files(id,name,md5Checksum)"},
 	}
 	files, err := self.listAllFiles(listArgs)
 	if err != nil {
@@ -258,6 +267,20 @@ func (self *Drive) downloadDirectory(parent *drive.File, args DownloadArgs) erro
 	newPath := filepath.Join(args.Path, parent.Name)
 
 	for _, f := range files {
+		// Check existence first when the file is a binary file
+		if isBinary(f) {
+			// Path to file
+			fpath := filepath.Join(newPath, f.Name)
+			// Check if file exists to force
+			if !args.Skip && !args.Force && fileExists(fpath) {
+				return fmt.Errorf("File '%s' already exists, use --force to overwrite or --skip to skip", fpath)
+			}
+			if args.Skip && fileExists(fpath) {
+				fmt.Printf("File '%s' already exists, skipping\n", fpath)
+				continue
+			}
+		}		
+
 		// Copy args and update changed fields
 		newArgs := args
 		newArgs.Path = newPath
